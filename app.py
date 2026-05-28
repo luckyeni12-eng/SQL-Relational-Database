@@ -5,6 +5,7 @@
 import sqlite3
 from datetime import datetime
 
+
 # -------------------------------
 # DATABASE CONNECTION
 # -------------------------------
@@ -22,7 +23,6 @@ def setup_database():
     conn = connect_db()
     cursor = conn.cursor()
 
-    # Students table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS students (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,7 +32,6 @@ def setup_database():
         )
     """)
 
-    # Grades table (related to students)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS grades (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,9 +51,18 @@ def setup_database():
 # INSERT OPERATIONS (CREATE)
 # -------------------------------
 def add_student(name, email):
-    """Insert a new student"""
+    """Insert a new student safely (prevents duplicate crash)"""
     conn = connect_db()
     cursor = conn.cursor()
+
+    # ✔️ FIX: check if email already exists
+    cursor.execute("SELECT id FROM students WHERE email = ?", (email,))
+    existing = cursor.fetchone()
+
+    if existing:
+        print(f"⚠️ Student with email '{email}' already exists. Skipping insert.")
+        conn.close()
+        return
 
     cursor.execute("""
         INSERT INTO students (name, email, created_at)
@@ -83,7 +91,6 @@ def add_grade(student_id, subject, score):
 # READ OPERATIONS
 # -------------------------------
 def get_all_students():
-    """Retrieve all students"""
     conn = connect_db()
     cursor = conn.cursor()
 
@@ -95,9 +102,7 @@ def get_all_students():
 
 
 def get_student_report():
-    """
-    JOIN students and grades tables
-    """
+    """JOIN students and grades tables"""
     conn = connect_db()
     cursor = conn.cursor()
 
@@ -116,7 +121,6 @@ def get_student_report():
 # UPDATE OPERATION
 # -------------------------------
 def update_grade(grade_id, new_score):
-    """Update a student's grade"""
     conn = connect_db()
     cursor = conn.cursor()
 
@@ -134,7 +138,6 @@ def update_grade(grade_id, new_score):
 # DELETE OPERATION
 # -------------------------------
 def delete_student(student_id):
-    """Delete a student and their grades"""
     conn = connect_db()
     cursor = conn.cursor()
 
@@ -149,19 +152,15 @@ def delete_student(student_id):
 # AGGREGATE FUNCTIONS
 # -------------------------------
 def get_statistics():
-    """Use SQL aggregate functions"""
     conn = connect_db()
     cursor = conn.cursor()
 
-    # Average score
     cursor.execute("SELECT AVG(score) FROM grades")
     avg_score = cursor.fetchone()[0]
 
-    # Total number of grades
     cursor.execute("SELECT COUNT(*) FROM grades")
     total_grades = cursor.fetchone()[0]
 
-    # Sum of all scores
     cursor.execute("SELECT SUM(score) FROM grades")
     total_score = cursor.fetchone()[0]
 
@@ -178,7 +177,6 @@ def get_statistics():
 # DATE FILTERING
 # -------------------------------
 def get_recent_grades():
-    """Get grades from last 24 hours"""
     conn = connect_db()
     cursor = conn.cursor()
 
@@ -198,7 +196,7 @@ def get_recent_grades():
 def main():
     setup_database()
 
-    # Create sample data
+    # Sample data (safe to rerun now)
     add_student("John Doe", "john@example.com")
     add_student("Jane Smith", "jane@example.com")
 
@@ -206,29 +204,22 @@ def main():
     add_grade(1, "Science", 90)
     add_grade(2, "Math", 78)
 
-    # Display students
     print("\nALL STUDENTS:")
     for s in get_all_students():
         print(s)
 
-    # JOIN query
     print("\nSTUDENT REPORT (JOIN):")
     for r in get_student_report():
         print(r)
 
-    # Aggregates
     print("\nSTATISTICS:")
     print(get_statistics())
 
-    # Date filtering
     print("\nRECENT GRADES:")
     for g in get_recent_grades():
         print(g)
 
-    # Update example
     update_grade(1, 95)
-
-    # Delete example
     delete_student(2)
 
 
